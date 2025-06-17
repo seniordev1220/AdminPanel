@@ -13,11 +13,11 @@ import { auth } from "@/lib/api"
 import type { UserProfile } from "@/lib/api"
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "User Management", href: "/dashboard/users", icon: Users },
-  { name: "White Label", href: "/dashboard/white-label", icon: Palette },
-  { name: "Price Plans", href: "/dashboard/pricing", icon: CreditCard },
-  { name: "Activity Logs", href: "/dashboard/logs", icon: Activity },
+  { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+  { name: "User Management", href: "/admin/dashboard/users", icon: Users },
+  { name: "White Label", href: "/admin/dashboard/white-label", icon: Palette },
+  { name: "Price Plans", href: "/admin/dashboard/pricing", icon: CreditCard },
+  { name: "Activity Logs", href: "/admin/dashboard/logs", icon: Activity },
 ]
 
 export default function DashboardLayout({
@@ -42,7 +42,7 @@ export default function DashboardLayout({
       } catch (err) {
         console.error('Authentication error:', err)
         localStorage.removeItem("adminToken")
-        router.push("/login")
+        router.push("/admin/login")
       } finally {
         setIsLoading(false)
       }
@@ -53,7 +53,7 @@ export default function DashboardLayout({
 
   const handleLogout = () => {
     localStorage.removeItem("adminToken")
-    router.push("/login")
+    router.push("/admin/login")
   }
 
   if (isLoading) {

@@ -12,6 +12,7 @@ const nextConfig = {
   env: {
     PORT: '4000'
   },
+  basePath: '/admin',
   experimental: {},
 }
 
