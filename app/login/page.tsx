@@ -35,7 +35,7 @@ export default function LoginPage() {
       await auth.getProfile()
       
       // Redirect to dashboard
-      router.push("/admin/dashboard")
+      router.push("/dashboard")
     } catch (err) {
       console.error('Login error:', err)
       setError(err instanceof Error ? err.message : "An error occurred during login")
