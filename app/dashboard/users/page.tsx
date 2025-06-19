@@ -17,19 +17,34 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Search, Trash2, RefreshCw } from "lucide-react"
+import { Plus, Search, Trash2, RefreshCw, Pencil } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { users, type UserProfile } from "@/lib/api"
+import { users, type UserWithSubscription } from "@/lib/api"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 export default function UsersPage() {
-  const [userList, setUserList] = useState<UserProfile[]>([])
+  const [userList, setUserList] = useState<UserWithSubscription[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
   const [page, setPage] = useState(0)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
+  const [isUpdating, setIsUpdating] = useState(false)
   const [isDeleting, setIsDeleting] = useState<number | null>(null)
+  const [selectedUser, setSelectedUser] = useState<UserWithSubscription | null>(null)
   const limit = 100
 
   const [newUser, setNewUser] = useState({
@@ -38,6 +53,17 @@ export default function UsersPage() {
     email: "",
     password: "",
     role: "user",
+    storage_limit_bytes: 5368709120, // 5GB default
+    max_users: 5, // 5 users default
+  })
+
+  const [editUser, setEditUser] = useState({
+    first_name: "",
+    last_name: "",
+    email: "",
+    role: "user",
+    storage_limit_bytes: 5368709120,
+    max_users: 5,
   })
 
   const fetchUsers = async () => {
@@ -62,7 +88,11 @@ export default function UsersPage() {
     fetchUsers()
   }, [page])
 
-  const getFullName = (user: UserProfile) => {
+  useEffect(() => {
+    console.log('editUser state changed:', editUser);
+  }, [editUser]);
+
+  const getFullName = (user: UserWithSubscription) => {
     return `${user.first_name} ${user.last_name}`.trim()
   }
 
@@ -75,18 +105,15 @@ export default function UsersPage() {
   const handleAddUser = async () => {
     setIsCreating(true)
     try {
-      await users.createUser({
-        email: newUser.email,
-        first_name: newUser.first_name,
-        last_name: newUser.last_name,
-        password: newUser.password,
-      })
+      await users.createUser(newUser)
       setNewUser({
         first_name: "",
         last_name: "",
         email: "",
         password: "",
         role: "user",
+        storage_limit_bytes: 5368709120,
+        max_users: 5,
       })
       setIsAddDialogOpen(false)
       fetchUsers()
@@ -98,17 +125,58 @@ export default function UsersPage() {
     }
   }
 
-  const handleDeleteUser = async (id: number) => {
-    setIsDeleting(id)
+  const confirmDelete = (user: UserWithSubscription) => {
+    setSelectedUser(user);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirmed = async () => {
+    if (!selectedUser) return;
+    
+    setIsDeleting(selectedUser.id);
     try {
-      await users.deleteUser(id)
+      await users.deleteUser(selectedUser.id);
+      fetchUsers();
+    } catch (err) {
+      console.error('Error deleting user:', err);
+      setError(err instanceof Error ? err.message : "Failed to delete user");
+    } finally {
+      setIsDeleting(null);
+      setSelectedUser(null);
+    }
+  };
+
+  const handleEditUser = async () => {
+    if (!selectedUser) return;
+    
+    setIsUpdating(true)
+    try {
+      await users.updateUser({
+        ...editUser,
+        id: selectedUser.id,
+      })
+      setIsEditDialogOpen(false)
       fetchUsers()
     } catch (err) {
-      console.error('Error deleting user:', err)
-      setError(err instanceof Error ? err.message : "Failed to delete user")
+      console.error('Error updating user:', err)
+      setError(err instanceof Error ? err.message : "Failed to update user")
     } finally {
-      setIsDeleting(null)
+      setIsUpdating(false)
     }
+  }
+
+  const openEditDialog = (user: UserWithSubscription) => {
+    console.log('Opening edit dialog with user:', user);
+    setSelectedUser(user)
+    setEditUser({
+      first_name: user.first_name || "",
+      last_name: user.last_name || "",
+      email: user.email || "",
+      role: user.role || "user",
+      storage_limit_bytes: user.storage_limit_bytes || 5368709120,
+      max_users: user.max_users || 5,
+    })
+    setIsEditDialogOpen(true)
   }
 
   const getRoleBadge = (role: string) => {
@@ -119,6 +187,30 @@ export default function UsersPage() {
     } as const
 
     return <Badge variant={variants[role as keyof typeof variants] || "default"}>{role}</Badge>
+  }
+
+  const getSubscriptionBadge = (subscription?: { status: string }) => {
+    if (!subscription) return null;
+
+    const variants = {
+      active: "default",
+      trialing: "secondary",
+      canceled: "destructive",
+      incomplete: "outline",
+    } as const
+
+    return (
+      <Badge variant={variants[subscription.status as keyof typeof variants] || "default"}>
+        {subscription.status}
+      </Badge>
+    )
+  }
+
+  const formatBytes = (bytes: number) => {
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+    if (bytes === 0) return '0 B'
+    const i = Math.floor(Math.log(bytes) / Math.log(1024))
+    return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`
   }
 
   return (
@@ -188,6 +280,52 @@ export default function UsersPage() {
                         placeholder="Enter password"
                       />
                     </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="role">Role</Label>
+                      <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value })}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="user">User</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="storage_limit">Storage Limit</Label>
+                      <Select 
+                        value={newUser.storage_limit_bytes.toString()} 
+                        onValueChange={(value) => setNewUser({ ...newUser, storage_limit_bytes: parseInt(value) })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select storage limit" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="5368709120">5 GB</SelectItem>
+                          <SelectItem value="10737418240">10 GB</SelectItem>
+                          <SelectItem value="21474836480">20 GB</SelectItem>
+                          <SelectItem value="53687091200">50 GB</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="max_users">Max Users</Label>
+                      <Select 
+                        value={newUser.max_users.toString()} 
+                        onValueChange={(value) => setNewUser({ ...newUser, max_users: parseInt(value) })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select max users" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="5">5 users</SelectItem>
+                          <SelectItem value="10">10 users</SelectItem>
+                          <SelectItem value="20">20 users</SelectItem>
+                          <SelectItem value="50">50 users</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
@@ -229,6 +367,9 @@ export default function UsersPage() {
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead>Storage Limit</TableHead>
+                  <TableHead>Max Users</TableHead>
+                  <TableHead>Subscription</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -238,27 +379,63 @@ export default function UsersPage() {
                     <TableCell className="font-medium">{getFullName(user)}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>{getRoleBadge(user.role)}</TableCell>
+                    <TableCell>{formatBytes(user.storage_limit_bytes)}</TableCell>
+                    <TableCell>{user.max_users} users</TableCell>
+                    <TableCell>{getSubscriptionBadge(user.subscription)}</TableCell>
                     <TableCell>
-                      {user.role !== 'admin' && (
+                      <div className="flex gap-2">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleDeleteUser(user.id)}
-                          disabled={isDeleting === user.id}
+                          onClick={() => openEditDialog(user)}
                         >
-                          {isDeleting === user.id ? (
-                            <div className="animate-spin h-4 w-4 border-b-2 border-primary" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
+                          <Pencil className="h-4 w-4" />
                         </Button>
-                      )}
+                        {user.role !== 'admin' && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setSelectedUser(user)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete User</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete {user.first_name} {user.last_name}? This action cannot be undone.
+                                  This will permanently delete their account and remove all their data from the server.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel onClick={() => setSelectedUser(null)}>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={handleDeleteConfirmed}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  {isDeleting === user.id ? (
+                                    <div className="flex items-center gap-2">
+                                      <div className="animate-spin h-4 w-4 border-b-2 border-primary-foreground" />
+                                      <span>Deleting...</span>
+                                    </div>
+                                  ) : (
+                                    "Delete User"
+                                  )}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
                 {filteredUsers.length === 0 && !loading && (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-8 text-gray-500">
+                    <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                       No users found
                     </TableCell>
                   </TableRow>
@@ -287,6 +464,105 @@ export default function UsersPage() {
           </div>
         </CardContent>
       </Card>
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>Update user account details.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit_first_name">First Name</Label>
+                <Input
+                  id="edit_first_name"
+                  value={editUser.first_name}
+                  onChange={(e) => setEditUser({ ...editUser, first_name: e.target.value })}
+                  placeholder="Enter first name"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit_last_name">Last Name</Label>
+                <Input
+                  id="edit_last_name"
+                  defaultValue={editUser.last_name}
+                  value={editUser.last_name}
+                  onChange={(e) => setEditUser({ ...editUser, last_name: e.target.value })}
+                  placeholder="Enter last name"
+                />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit_email">Email</Label>
+              <Input
+                id="edit_email"
+                type="email"
+                value={editUser.email}
+                onChange={(e) => setEditUser({ ...editUser, email: e.target.value })}
+                placeholder="Enter email address"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit_role">Role</Label>
+              <Select 
+                value={editUser.role} 
+                onValueChange={(value) => setEditUser({ ...editUser, role: value })}
+                disabled={selectedUser?.role === 'admin'}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit_storage_limit">Storage Limit</Label>
+              <Select 
+                value={editUser.storage_limit_bytes.toString()} 
+                onValueChange={(value) => setEditUser({ ...editUser, storage_limit_bytes: parseInt(value) })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select storage limit" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5368709120">5 GB</SelectItem>
+                  <SelectItem value="10737418240">10 GB</SelectItem>
+                  <SelectItem value="21474836480">20 GB</SelectItem>
+                  <SelectItem value="53687091200">50 GB</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit_max_users">Max Users</Label>
+              <Select 
+                value={editUser.max_users.toString()} 
+                onValueChange={(value) => setEditUser({ ...editUser, max_users: parseInt(value) })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select max users" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5 users</SelectItem>
+                  <SelectItem value="10">10 users</SelectItem>
+                  <SelectItem value="20">20 users</SelectItem>
+                  <SelectItem value="50">50 users</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditUser} disabled={isUpdating}>
+              {isUpdating ? "Updating..." : "Update User"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

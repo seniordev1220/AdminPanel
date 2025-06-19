@@ -42,6 +42,34 @@ export interface UserProfile {
   first_name: string;
   last_name: string;
   role: string;
+  storage_limit_bytes: number;
+  max_users: number;
+}
+
+export interface UserSubscription {
+  plan_type: string;
+  billing_interval: string;
+  status: string;
+}
+
+export interface UserWithSubscription extends UserProfile {
+  subscription?: UserSubscription;
+}
+
+export interface UserAdminCreate extends UserCreate {
+  role?: string;
+  storage_limit_bytes?: number;
+  max_users?: number;
+  custom_monthly_price?: number;
+  custom_annual_price?: number;
+}
+
+export interface UserAdminUpdate extends UserUpdate {
+  role?: string;
+  storage_limit_bytes?: number;
+  max_users?: number;
+  custom_monthly_price?: number;
+  custom_annual_price?: number;
 }
 
 export interface UserUpdate {
@@ -142,12 +170,12 @@ export const auth = {
     return response.json();
   },
 
-  getProfile: async (): Promise<UserProfile> => {
+  getProfile: async (): Promise<UserWithSubscription> => {
     const response = await fetchWithAuth('/users/me');
     return response.json();
   },
 
-  updateProfile: async (data: UserUpdate): Promise<UserProfile> => {
+  updateProfile: async (data: UserAdminUpdate): Promise<UserWithSubscription> => {
     const response = await fetchWithAuth('/users/me', {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -165,7 +193,7 @@ export const auth = {
     });
   },
 
-  getUserById: async (userId: number): Promise<UserProfile> => {
+  getUserById: async (userId: number): Promise<UserWithSubscription> => {
     const response = await fetchWithAuth(`/users/${userId}`);
     return response.json();
   },
@@ -194,7 +222,7 @@ export const activities = {
 };
 
 export const users = {
-  getAllUsers: async (params: UserQueryParams = {}): Promise<UserProfile[]> => {
+  getAllUsers: async (params: UserQueryParams = {}): Promise<UserWithSubscription[]> => {
     const searchParams = new URLSearchParams();
     if (params.skip !== undefined) searchParams.append('skip', params.skip.toString());
     if (params.limit !== undefined) searchParams.append('limit', params.limit.toString());
@@ -203,7 +231,7 @@ export const users = {
     return response.json();
   },
 
-  createUser: async (userData: UserCreate): Promise<UserProfile> => {
+  createUser: async (userData: UserAdminCreate): Promise<UserWithSubscription> => {
     const response = await fetchWithAuth('/users', {
       method: 'POST',
       body: JSON.stringify(userData),
@@ -215,6 +243,19 @@ export const users = {
     await fetchWithAuth(`/users/${userId}`, {
       method: 'DELETE',
     });
+  },
+
+  getTrialStatus: async (): Promise<{ trial_active: boolean; limits?: Record<string, any> }> => {
+    const response = await fetchWithAuth('/users/trial-status');
+    return response.json();
+  },
+
+  updateUser: async (userData: UserAdminUpdate & { id: number }): Promise<UserWithSubscription> => {
+    const response = await fetchWithAuth(`/users/${userData.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(userData),
+    });
+    return response.json();
   },
 };
 
