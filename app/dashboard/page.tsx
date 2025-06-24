@@ -1,7 +1,7 @@
 "use client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, Palette, CreditCard, Activity } from "lucide-react"
-import { activities, users, pricePlans } from "@/lib/api"
+import { activities, users, pricePlans, brandSettings } from "@/lib/api"
 import { useEffect, useState } from "react"
 import { ActivityLog, UserProfile, PricePlan } from "@/lib/api"
 
@@ -54,16 +54,17 @@ export default function DashboardPage() {
         setError(null)
 
         // Fetch all required data in parallel
-        const [allUsers, allPlans, recentLogs] = await Promise.all([
+        const [allUsers, allPlans, recentLogs, brandCount] = await Promise.all([
           users.getAllUsers(),
           pricePlans.getAllPlans(),
-          activities.getRecentActivities({ limit: 3 })
+          activities.getRecentActivities({ limit: 3 }),
+          brandSettings.getBrandCount()
         ])
 
         // Update stats
         setStats({
           totalUsers: allUsers.length,
-          whiteLabelBrands: 12, // This would come from a white label brands API endpoint
+          whiteLabelBrands: brandCount,
           pricePlans: allPlans.length,
           dailyActions: recentLogs.length
         })

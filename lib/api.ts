@@ -148,6 +148,39 @@ export interface PricePlanCreate {
 
 export interface PricePlanUpdate extends Partial<PricePlanCreate> {}
 
+export interface BrandSettings {
+  id: number;
+  brand_name: string;
+  domain: string;
+  primary_color: string;
+  secondary_color: string;
+  logo_url: string;
+  favicon_url: string;
+  is_active: boolean;
+  storage_limit_gb: number;
+  max_accounts: number;
+  subscription_interval?: string;
+  price_amount?: number;
+  stripe_price_id?: string;
+  created_at: string;
+}
+
+export interface BrandSettingsCreate {
+  brand_name: string;
+  domain: string;
+  primary_color: string;
+  secondary_color: string;
+  logo_url: string;
+  favicon_url: string;
+  is_active: boolean;
+  storage_limit_gb: number;
+  max_accounts: number;
+  subscription_interval?: string;
+  price_amount?: number;
+}
+
+export interface BrandSettingsUpdate extends Partial<BrandSettingsCreate> {}
+
 export const auth = {
   login: async (email: string, password: string): Promise<LoginResponse> => {
     const formData = new URLSearchParams();
@@ -322,4 +355,43 @@ export const pricePlans = {
   },
 };
 
-export default { auth, users, activities, pricePlans }; 
+export const brandSettings = {
+  getAllBrands: async (): Promise<BrandSettings[]> => {
+    const response = await fetchWithAuth('/settings/brands/');
+    return response.json();
+  },
+
+  getBrandCount: async (): Promise<number> => {
+    const brands = await brandSettings.getAllBrands();
+    return brands.length;
+  },
+
+  getBrandById: async (brandId: number): Promise<BrandSettings> => {
+    const response = await fetchWithAuth(`/settings/brands/${brandId}`);
+    return response.json();
+  },
+
+  createBrand: async (brandData: BrandSettingsCreate): Promise<BrandSettings> => {
+    const response = await fetchWithAuth('/settings/brands/', {
+      method: 'POST',
+      body: JSON.stringify(brandData),
+    });
+    return response.json();
+  },
+
+  updateBrand: async (brandId: number, brandData: BrandSettingsUpdate): Promise<BrandSettings> => {
+    const response = await fetchWithAuth(`/settings/brands/${brandId}`, {
+      method: 'PUT',
+      body: JSON.stringify(brandData),
+    });
+    return response.json();
+  },
+
+  deleteBrand: async (brandId: number): Promise<void> => {
+    await fetchWithAuth(`/settings/brands/${brandId}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+export default { auth, users, activities, pricePlans, brandSettings }; 
