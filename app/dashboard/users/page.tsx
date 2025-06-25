@@ -55,6 +55,8 @@ export default function UsersPage() {
     role: "user",
     storage_limit_bytes: 5368709120, // 5GB default
     max_users: 5, // 5 users default
+    custom_monthly_price: 0,
+    custom_annual_price: 0,
   })
 
   const [editUser, setEditUser] = useState({
@@ -64,6 +66,8 @@ export default function UsersPage() {
     role: "user",
     storage_limit_bytes: 5368709120,
     max_users: 5,
+    custom_monthly_price: 0,
+    custom_annual_price: 0,
   })
 
   const fetchUsers = async () => {
@@ -114,6 +118,8 @@ export default function UsersPage() {
         role: "user",
         storage_limit_bytes: 5368709120,
         max_users: 5,
+        custom_monthly_price: 0,
+        custom_annual_price: 0,
       })
       setIsAddDialogOpen(false)
       fetchUsers()
@@ -175,6 +181,8 @@ export default function UsersPage() {
       role: user.role || "user",
       storage_limit_bytes: user.storage_limit_bytes || 5368709120,
       max_users: user.max_users || 5,
+      custom_monthly_price: user.custom_monthly_price || 0,
+      custom_annual_price: user.custom_annual_price || 0,
     })
     setIsEditDialogOpen(true)
   }
@@ -326,6 +334,30 @@ export default function UsersPage() {
                         </SelectContent>
                       </Select>
                     </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="custom_monthly_price">Custom Monthly Price ($)</Label>
+                      <Input
+                        id="custom_monthly_price"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={newUser.custom_monthly_price}
+                        onChange={(e) => setNewUser({ ...newUser, custom_monthly_price: parseFloat(e.target.value) || 0 })}
+                        placeholder="Enter custom monthly price"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="custom_annual_price">Custom Annual Price ($)</Label>
+                      <Input
+                        id="custom_annual_price"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={newUser.custom_annual_price}
+                        onChange={(e) => setNewUser({ ...newUser, custom_annual_price: parseFloat(e.target.value) || 0 })}
+                        placeholder="Enter custom annual price"
+                      />
+                    </div>
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
@@ -369,6 +401,8 @@ export default function UsersPage() {
                   <TableHead>Role</TableHead>
                   <TableHead>Storage Limit</TableHead>
                   <TableHead>Max Users</TableHead>
+                  <TableHead>Custom Monthly</TableHead>
+                  <TableHead>Custom Annual</TableHead>
                   <TableHead>Subscription</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -381,6 +415,8 @@ export default function UsersPage() {
                     <TableCell>{getRoleBadge(user.role)}</TableCell>
                     <TableCell>{formatBytes(user.storage_limit_bytes)}</TableCell>
                     <TableCell>{user.max_users} users</TableCell>
+                    <TableCell>${user.custom_monthly_price?.toFixed(2) || '0.00'}</TableCell>
+                    <TableCell>${user.custom_annual_price?.toFixed(2) || '0.00'}</TableCell>
                     <TableCell>{getSubscriptionBadge(user.subscription)}</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
@@ -550,6 +586,30 @@ export default function UsersPage() {
                   <SelectItem value="50">50 users</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit_custom_monthly_price">Custom Monthly Price ($)</Label>
+              <Input
+                id="edit_custom_monthly_price"
+                type="number"
+                min="0"
+                step="0.01"
+                value={editUser.custom_monthly_price}
+                onChange={(e) => setEditUser({ ...editUser, custom_monthly_price: parseFloat(e.target.value) || 0 })}
+                placeholder="Enter custom monthly price"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit_custom_annual_price">Custom Annual Price ($)</Label>
+              <Input
+                id="edit_custom_annual_price"
+                type="number"
+                min="0"
+                step="0.01"
+                value={editUser.custom_annual_price}
+                onChange={(e) => setEditUser({ ...editUser, custom_annual_price: parseFloat(e.target.value) || 0 })}
+                placeholder="Enter custom annual price"
+              />
             </div>
           </div>
           <DialogFooter>

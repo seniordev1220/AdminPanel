@@ -44,16 +44,25 @@ export interface UserProfile {
   role: string;
   storage_limit_bytes: number;
   max_users: number;
+  custom_monthly_price?: number;
+  custom_annual_price?: number;
 }
 
 export interface UserSubscription {
   plan_type: string;
   billing_interval: string;
   status: string;
+  stripe_customer_id?: string;
 }
 
 export interface UserWithSubscription extends UserProfile {
   subscription?: UserSubscription;
+  is_active?: boolean;
+  storage_used_bytes?: number;
+  current_users?: number;
+  created_at?: string;
+  updated_at?: string;
+  finiite_api_key?: string;
 }
 
 export interface UserAdminCreate extends UserCreate {
