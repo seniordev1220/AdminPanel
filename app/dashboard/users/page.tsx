@@ -485,7 +485,6 @@ export default function UsersPage() {
                 <Label htmlFor="edit_last_name">Last Name</Label>
                 <Input
                   id="edit_last_name"
-                  defaultValue={editUser.last_name}
                   value={editUser.last_name}
                   onChange={(e) => setEditUser({ ...editUser, last_name: e.target.value })}
                   placeholder="Enter last name"
