@@ -1,6 +1,6 @@
 "use client"
 
-import { ActivationForm } from "@/app/components/activation/ActivationForm"
+import { ActivationForm } from "@/components/activation/ActivationForm"
 
 export default function ActivationPage() {
   return (
