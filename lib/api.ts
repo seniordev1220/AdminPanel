@@ -190,6 +190,68 @@ export interface BrandSettingsCreate {
 
 export interface BrandSettingsUpdate extends Partial<BrandSettingsCreate> {}
 
+export interface ActivationCodeData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+}
+
+export interface ActivationCodeResponse {
+  success: boolean;
+  message: string;
+  activationCode?: string;
+  isExisting?: boolean;
+}
+
+export const activationApi = {
+  createActivationCode: async (data: ActivationCodeData): Promise<ActivationCodeResponse> => {
+    try {
+      // Convert camelCase to snake_case for backend compatibility
+      const transformedData = {
+        first_name: data.firstName,
+        last_name: data.lastName,
+        email: data.email,
+        password: data.password
+      };
+      
+      const response = await fetchWithAuth('/activation-codes', {
+        method: 'POST',
+        body: JSON.stringify(transformedData),
+      });
+      
+      const responseData = await response.json();
+      
+      return {
+        success: true,
+        message: 'Activation code generated successfully',
+        activationCode: responseData.activation_code,
+        isExisting: responseData.is_existing,
+      };
+    } catch (error: any) {
+      if (error instanceof Error) {
+        // Handle validation errors (422)
+        if (error.message.includes('422')) {
+          return {
+            success: false,
+            message: `Validation error: ${error.message}`,
+          };
+        }
+        
+        return {
+          success: false,
+          message: error.message || 'An error occurred while generating the activation code',
+        };
+      }
+      
+      return {
+        success: false,
+        message: 'An error occurred while generating the activation code',
+      };
+    }
+  },
+};
+
 export const auth = {
   login: async (email: string, password: string): Promise<LoginResponse> => {
     const formData = new URLSearchParams();
@@ -403,4 +465,4 @@ export const brandSettings = {
   },
 };
 
-export default { auth, users, activities, pricePlans, brandSettings }; 
+export default { auth, users, activities, pricePlans, brandSettings, activationApi }; 
