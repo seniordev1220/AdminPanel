@@ -8,7 +8,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Users, Palette, CreditCard, Activity, Menu, LogOut, LayoutDashboard } from "lucide-react"
+import { Users, Palette, CreditCard, Activity, Menu, LogOut, LayoutDashboard, Key } from "lucide-react"
 import { auth } from "@/lib/api"
 import type { UserProfile } from "@/lib/api"
 
@@ -17,6 +17,7 @@ const navigation = [
   { name: "User Management", href: "/dashboard/users", icon: Users },
   { name: "White Label", href: "/dashboard/white-label", icon: Palette },
   { name: "Price Plans", href: "/dashboard/pricing", icon: CreditCard },
+  { name: "Activation Codes", href: "/dashboard/activation", icon: Key },
   { name: "Activity Logs", href: "/dashboard/logs", icon: Activity },
 ]
 
